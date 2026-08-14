@@ -1,9 +1,5 @@
 import { NextResponse } from "next/server";
-import {
-  getMessageById,
-  updateMessageCategory,
-  VALID_CATEGORIES,
-} from "@/app/lib/store";
+import { getMessageById, updateMessageCategory, VALID_CATEGORIES } from "@/app/lib/store";
 
 // PATCH /api/messages/:id/category  body: { "category": "facture" }
 export async function PATCH(request, { params }) {
@@ -18,10 +14,14 @@ export async function PATCH(request, { params }) {
 
   const { category } = body;
 
+  if (!category) {
+    return NextResponse.json({ error: "Champs catégorie obligatoire" }, { status: 400 });
+  }
+
   if (!VALID_CATEGORIES.includes(category)) {
     return NextResponse.json(
       { error: `Catégorie invalide. Valeurs possibles : ${VALID_CATEGORIES.join(", ")}` },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
