@@ -7,7 +7,7 @@ import { MutateCategory } from "../lib/service";
 export default function MessageItem({ message, selectedId, setSelectedId }) {
   const queryClient = useQueryClient();
 
-  const { mutate } = useMutation({
+  const { mutate, isPending } = useMutation({
     mutationFn: MutateCategory,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["messages"] });
@@ -55,19 +55,23 @@ export default function MessageItem({ message, selectedId, setSelectedId }) {
           <div className="flex justify-between">
             <p className="mt-3 text-xs text-gray-400">{message.from.email}</p>
             <p>
-              <select
-                defaultValue={message.category}
-                onChange={(e) => handleReclassify(message.id, e.target.value)}
-                onClick={(e) => e.stopPropagation()}
-                className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs text-gray-600
+              {isPending ? (
+                <span>sauvegarde en cours</span>
+              ) : (
+                <select
+                  defaultValue={message.category}
+                  onChange={(e) => handleReclassify(message.id, e.target.value)}
+                  onClick={(e) => e.stopPropagation()}
+                  className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs text-gray-600
                              focus:outline-none focus:ring-2 focus:ring-emerald-600 cursor-pointer"
-              >
-                {VALID_CATEGORIES.map((category, key) => (
-                  <option key={key} value={category}>
-                    {category}
-                  </option>
-                ))}
-              </select>
+                >
+                  {VALID_CATEGORIES.map((category, key) => (
+                    <option key={key} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+              )}
             </p>
           </div>
         </div>

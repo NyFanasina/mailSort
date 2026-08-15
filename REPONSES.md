@@ -1,3 +1,5 @@
+Les pages du dashboard sont disponibles à l'adresse : http://localhost:3000/dashboard
+
 ### 1. Correction des anomalies de comportement
 
 #### Anomalie 1 — Filtre par catégorie incorrect sur `/api/messages`
@@ -24,6 +26,18 @@ Seuls les messages correspondant exactement à la catégorie demandée sont main
 - **Cause :** Absence de vérification de l'existence de la propriété `category` avant la vérification dans `VALID_CATEGORIES`.
 - **Correction :** Ajout d'une condition d'existence `if (!category)` dans la route `PATCH` renvoyant une erreur `400 Bad Request` spécifique (`"Champs catégorie obligatoire"`).
 
+### Anomalie 4 : Statistiques non synchronisées et catégories vides absentes (`/api/messages/stats`)
+
+- **Symptôme :**
+  - Après avoir reclassé un message via l'API, les compteurs renvoyés par `/api/messages/stats` ne reflétaient pas le changement et affichaient toujours les anciennes valeurs.
+  - Les catégories valides ne contenant aucun message (compteur à 0) n'apparaissaient pas dans l'objet `byCategory`.
+- **Cause :**
+  - La route importait directement le fichier statique `@/data/messages.json` au lieu de lire les données modifiées en mémoire depuis le store.
+  - Les statistiques étaient construites uniquement en bouclant sur les messages existants, sans s'appuyer sur la liste des catégories autorisées (`VALID_CATEGORIES`).
+- **Correction :**
+  - Remplacement de l'import JSON par l'appel à `getAllMessages()` pour récupérer l'état des messages en mémoire à jour.
+  - Initialisation et calcul des statistiques sur la base de `VALID_CATEGORIES` afin de garantir la présence de toutes les catégories dans la réponse, y compris celles avec un total de 0.
+
 ### 2. Choix techniques principaux
 
 - **Authentification (Middleware Next.js) :** J'ai mis en place un middleware Next.js pour protéger l'ensemble des routes `/api/messages*` en rejetant toute requête sans JWT valide par une erreur **401 Unauthorized**. Cette approche permet de centraliser la logique de sécurité en un seul endroit, tout en laissant la route `/api/auth/login` accessible au public.
@@ -39,10 +53,12 @@ Le fait que l’API soit consommée par une application desktop implique de cons
 
 L’API doit obligatoirement être exposée en HTTPS afin de protéger les échanges réseau.
 
-Je conserverais l'authentification Auth Bearer (JSON Web Token) pour les applications desktop. Les requêtes hors-navigateur contournent le CORS,il ne faut donc pas se reposer sur CORS pour la sécurité, mais imposer une authentification stricte (Authorization: Bearer) et un Rate Limiting par IP client.
+Je conserverais l'authentification Auth Bearer (JSON Web Token) pour les applications desktop. En effet, contrairement aux navigateurs, ces applications ne gèrent pas nativement les cookies. Si le serveur utilisait jusqu'ici des cookies pour transmettre les JWT, il convient donc de basculer vers l'en-tête Authorization: Bearer <JWT>.Je ne compterais pas non plus sur CORS pour sécuriser l'API : CORS est une politique appliquée par les navigateurs et ne constitue pas un mécanisme d'authentification ou d'autorisation.
+Je privilégierais des access tokens de courte durée, par exemple autour de 10 à 15 minutes selon le niveau de risque, associés à un refresh token permettant d'obtenir un nouveau token sans demander à l'utilisateur de se reconnecter.
 
 Je mettrais en place un versionnage explicite de l’API, par exemple /api/v1/messages, afin de pouvoir la faire évoluer sans casser les anciennes versions du desktop. Les changements incompatibles seraient introduits dans une nouvelle version majeure, avec une période de dépréciation.
 
+Je créerais aussi par exemple un endpoint /api/version indiquant la version minimale supportée, permettant au client desktop de notifier l'utilisateur lorsqu'une mise à jour de l'application devient obligatoire.
 Je documenterais le contrat de l’API avec OpenAPI/Swagger afin de faciliter son intégration et son évolution.
 
 Enfin, l’API resterait indépendante de la version du client et les permissions seraient toujours vérifiées côté serveur, sans faire confiance au desktop.

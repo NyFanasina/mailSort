@@ -1,17 +1,19 @@
+import { getAllMessages, VALID_CATEGORIES } from "@/app/lib/store";
 import { NextResponse } from "next/server";
-import raw from "@/data/messages.json";
 
 // GET /api/messages/stats
 // Retourne le nombre de messages par catégorie ainsi que le total.
 export async function GET() {
-  const stats = {};
+  const messages = getAllMessages();
 
-  for (const message of raw) {
-    stats[message.category] = (stats[message.category] || 0) + 1;
-  }
+  const stats = VALID_CATEGORIES.reduce((acc, category) => {
+    const count = messages.reduce((accCount, m) => accCount + (m.category === category ? 1 : 0), 0);
+    acc[category] = count;
+    return acc;
+  }, {});
 
   return NextResponse.json({
-    total: raw.length,
+    total: messages.length,
     byCategory: stats,
   });
 }
