@@ -15,7 +15,7 @@ export default function Login() {
     mutationFn: authenticate,
     onSuccess: (data) => {
       TokenStorage.set(data.token);
-      push("/messages");
+      push("/dashboard");
     },
     onError: (error) => {
       if (error.response.status === 401) return setErrorMessage("Adresse e-mail ou mot de passe invalide");
